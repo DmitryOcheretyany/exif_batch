@@ -1,0 +1,53 @@
+name: build-windows
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Setup MSYS2 (MinGW)
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            git
+            unzip
+
+      - name: Clone vcpkg
+        shell: msys2 {0}
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cmake --build build
+
+      - name: Collect
+        shell: msys2 {0}
+        run: |
+          mkdir -p dist
+          cp -v build/*.exe dist/ || true
+          cp -v build/vcpkg_installed/x64-mingw-dynamic/bin/*.dll dist/ || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exif_batch_windows
+          path: dist
