@@ -31,7 +31,7 @@ jobs:
         shell: msys2 {0}
         run: |
           cmake -S . -B build -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic \
             -DCMAKE_BUILD_TYPE=Release
 
@@ -43,9 +43,26 @@ jobs:
       - name: Collect
         shell: msys2 {0}
         run: |
+          set -euo pipefail
           mkdir -p dist
+
+          # exe
           cp -v build/*.exe dist/ || true
+          cp -v build/*/*.exe dist/ || true
+
+          # DLLs produced/installed by vcpkg (dependencies like exiv2, zlib, etc.)
           cp -v build/vcpkg_installed/x64-mingw-dynamic/bin/*.dll dist/ || true
+          cp -v build/vcpkg_installed/x64-mingw-dynamic/debug/bin/*.dll dist/ || true
+
+          # MinGW runtime DLLs (the ones that обычно missing on clean Windows)
+          cp -v /mingw64/bin/libgcc_s_seh-1.dll dist/ || true
+          cp -v /mingw64/bin/libstdc++-6.dll dist/ || true
+          cp -v /mingw64/bin/libwinpthread-1.dll dist/ || true
+
+          # Optional: if your exe ends up depending on these too (harmless if absent)
+          cp -v /mingw64/bin/zlib1.dll dist/ || true
+          cp -v /mingw64/bin/libiconv-2.dll dist/ || true
+          cp -v /mingw64/bin/libintl-8.dll dist/ || true
 
       - uses: actions/upload-artifact@v4
         with:
