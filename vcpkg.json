@@ -1,0 +1,5 @@
+{
+  "name": "exif-batch-set",
+  "version-string": "1.0",
+  "dependencies": [ "exiv2" ]
+}
